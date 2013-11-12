@@ -1,8 +1,15 @@
 #Imports for Network class
-import abc 
+import abc
+import sys 
 
 #Twitter specific imports
 import twitter
+import json
+from twitter__login import login
+from twitter__util import makeTwitterRequest
+from twitter__util import getNextQueryMaxIdParam
+
+from pymongo import MongoClient
 #Network class is an interface to acces to all the methods for mining the network
 
 class Network(object):
@@ -20,35 +27,75 @@ class Network(object):
     
     def get_by_location(self,location):
         raise NotImplementedError
-    
+     
 class Twitter(Network):
     
     auth = ''
     twitter_api =''
     
-    def __init__(self, CONSUMER_KEY, CONSUMER_SECRET,OAUTH_TOKEN,OAUTH_TOKEN_SECRET):
-        self.CONSUMER_KEY = CONSUMER_KEY
-        self.CONSUMER_SECRET = CONSUMER_SECRET
-        self.OAUTH_TOKEN = OAUTH_TOKEN
-        self.OAUTH_TOKEN_SECRET = OAUTH_TOKEN_SECRET
     
     def login(self):
-        self.auth = twitter.oauth.OAuth(self.OAUTH_TOKEN, self.OAUTH_TOKEN_SECRET,
-                           self.CONSUMER_KEY, self.CONSUMER_SECRET)
-        self.twitter_api = twitter.Twitter(domain='api.twitter.com', 
-                              api_version='1.1',
-                              auth=self.auth
-                             )
-    def get_top(self):
+        return login()
+    
+    def get_trends(self):
         WORLD_WOE_ID = 1    
         
         world_trends = self.twitter_api.trends.place(_id=WORLD_WOE_ID)
-        print world_trends
+        print json.dumps(world_trends, sort_keys=True,indent=1)
+    
+    def get_stream(self,name,pages):
+        TIMELINE_NAME = name
+        MAX_PAGES = pages
+        USER = None
         
-# CONSUMER_KEY = '6Zh1OZGtpQgTENiRDpY4zg'
-# CONSUMER_SECRET = 'KIyMtMEuMMaU12HNEtM2G3x23Jge5yy1kxSKeeBPYvU'
-# OAUTH_TOKEN = '75118840-YBAMIoZJPlYuGkdhsmutBdoagGRYKuv80eXtwlDgo'
-# OAUTH_TOKEN_SECRET = 'cJuiGopAWmeoy01rgzN4XvlZhBsda4w5bl9P1ITHAtosx'
-# tw = Twitter(CONSUMER_KEY,CONSUMER_SECRET,OAUTH_TOKEN,OAUTH_TOKEN_SECRET)
-# tw.login()
+        KW = {  # For the Twitter API call
+            'count': 200,
+            'trim_user': 'true',
+            'include_rts' : 'true',
+            'since_id' : 1,
+        }
+        
+        if TIMELINE_NAME == 'user':
+            USER = sys.argv[3]
+            KW['screen_name'] = USER
+        if TIMELINE_NAME == 'home' and MAX_PAGES > 4:
+            MAX_PAGES = 4
+        if TIMELINE_NAME == 'user' and MAX_PAGES > 16:
+            MAX_PAGES = 16
+            
+        t = self.login()
+         
+         
+        client = MongoClient('localhost',27017)
+
+        db = client.test_database
+        posts = db.post #varibale to make post of the data
+        
+        
+        api_call = getattr(t.statuses, TIMELINE_NAME + '_timeline')
+        tweets = makeTwitterRequest(api_call, **KW)
+        
+        post_id = posts.insert(tweets)
+        print '# post id'
+        print post_id
+        print 'Fetched %i tweets' % len(tweets)
+        
+        page_num = 1
+        while page_num < MAX_PAGES and len(tweets) > 0:
+        
+            # Necessary for traversing the timeline in Twitter's v1.1 API.
+            # See https://dev.twitter.com/docs/working-with-timelines
+            KW['max_id'] = getNextQueryMaxIdParam(tweets)
+        
+            api_call = getattr(t.statuses, TIMELINE_NAME + '_timeline')
+            tweets = makeTwitterRequest(api_call, **KW)
+            #db.update(tweets, all_or_nothing=True)
+            print json.dumps(tweets,indent = 3)
+            posts.insert(tweets)
+            print 'Fetched %i tweets' % len(tweets)
+            page_num += 1
+            
+
+# tw = Twitter()
 # tw.get_top()
+# tw.get_stream('home', 16)

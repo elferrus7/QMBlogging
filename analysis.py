@@ -1,6 +1,11 @@
+from __future__ import print_function
+from alchemyapi import AlchemyAPI
 import abc
-
+import json
+#Imports for Bitext
 import httplib, urllib
+
+#Imports for Alchemiyst
 
 class Analysis(object):
     __metaclass__ = abc.ABCMeta
@@ -21,7 +26,7 @@ class Analysis(object):
     def get_entities(self):
         raise NotImplementedError
         
-    def get_emotions(self):
+    def get_sentiment(self):
         raise NotImplementedError
     
 class Bitext(Analysis):
@@ -35,7 +40,6 @@ class Bitext(Analysis):
         self.pwd = pwd
         
     def get_entities(self,txt):
-        #txt = 'The API is very good'
         id = '0001'
         params = urllib.urlencode({'User': '%s' % self.usr, 'Pass': '%s' %self.pwd, 'Lang': '%s' % self.lang, 'ID': '%s' %id, 'Text': '%s' % txt, 'Detail': 'Detailed', 'OutFormat':'JSON', 'Normalized': 'No', 'Theme': 'Gen'})
 
@@ -52,7 +56,47 @@ class Bitext(Analysis):
         data = response.read()
         conn.close()
         
-        print data
+        #print data
+
+class Alchemy(Analysis):
+    
+    
+    def __init__(self):
+        self.alchemyapi = AlchemyAPI()
+        
+    def get_entities(self,txt):
+        print('Processing text: ', txt)
+        print('')
+        
+        response = self.alchemyapi.entities('text',txt)
+        
+        if response['status'] == 'OK':
+            print('')
+            print('## Entities ##')
+            for entity in response['entities']:
+                print('text: ', entity['text'])
+                print('type: ', entity['type'])
+                print('relevance: ', entity['relevance'])
+                print('')
+        else:
+            print('Error in entity extraction call: ', response['statusInfo'])
+
+    def get_sentiment(self,txt):
+        response = self.alchemyapi.sentiment('text',txt)
+        
+        if response['status'] == 'OK':
+            print('## Response Object ##')
+            print(json.dumps(response, indent=4))
+         
+            print('')
+            print('## Document Sentiment ##')
+            print('type: ', response['docSentiment']['type'])
+            print('score: ', response['docSentiment']['score'])
+        else:
+            print('Error in sentiment analysis call: ', response['statusInfo'])
         
 # bit = Bitext('eng','svc8.bitext.com','elferrus7','mmohuevos7')
-# bit.get_entities(txt='The API is very good')
+# bit.get_entities(txt='All our growth is organic we didnt spend money on advertising is the new the market is so big that we only need to take 1 badpitch')
+
+# alchemy = Alchemy()
+# alchemy.get_entities(txt='Yesterday dumb Bob destroyed my fancy iPhone in beautiful Denver, Colorado. I guess I will have to head over to the Apple Store and buy a new one.')
