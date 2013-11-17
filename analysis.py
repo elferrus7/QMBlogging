@@ -2,6 +2,7 @@ from __future__ import print_function
 from alchemyapi import AlchemyAPI
 import abc
 import json
+from pymongo import MongoClient
 #Imports for Bitext
 import httplib, urllib
 
@@ -72,12 +73,22 @@ class Alchemy(Analysis):
         
         if response['status'] == 'OK':
             print('')
+            client = MongoClient('localhost',27017)
+            db = client.test_database
+            posts = db.analisys_data
+            
+            print('')
             print('## Entities ##')
             for entity in response['entities']:
                 print('text: ', entity['text'])
                 print('type: ', entity['type'])
                 print('relevance: ', entity['relevance'])
                 print('')
+                print('Saving in database')
+                post_id = posts.insert(entity)
+                print('post ID')
+                print(post_id)
+                
         else:
             print('Error in entity extraction call: ', response['statusInfo'])
 
@@ -98,5 +109,5 @@ class Alchemy(Analysis):
 # bit = Bitext('eng','svc8.bitext.com','elferrus7','mmohuevos7')
 # bit.get_entities(txt='All our growth is organic we didnt spend money on advertising is the new the market is so big that we only need to take 1 badpitch')
 
-# alchemy = Alchemy()
-# alchemy.get_entities(txt='Yesterday dumb Bob destroyed my fancy iPhone in beautiful Denver, Colorado. I guess I will have to head over to the Apple Store and buy a new one.')
+#alchemy = Alchemy()
+#alchemy.get_entities(txt='Yesterday dumb Bob destroyed my fancy iPhone in beautiful Denver, Colorado. I guess I will have to head over to the Apple Store and buy a new one.')

@@ -43,9 +43,7 @@ class Twitter(Network):
         world_trends = self.twitter_api.trends.place(_id=WORLD_WOE_ID)
         print json.dumps(world_trends, sort_keys=True,indent=1)
     
-    def get_stream(self,name,pages):
-        TIMELINE_NAME = name
-        MAX_PAGES = pages
+    def get_stream(self,TIMELINE_NAME,MAX_PAGES):
         USER = None
         
         KW = {  # For the Twitter API call
@@ -69,15 +67,17 @@ class Twitter(Network):
         client = MongoClient('localhost',27017)
 
         db = client.test_database
-        posts = db.post #varibale to make post of the data
-        
+        posts = db.tw_data #Collection name
+        posts.drop()
         
         api_call = getattr(t.statuses, TIMELINE_NAME + '_timeline')
         tweets = makeTwitterRequest(api_call, **KW)
-        
-        post_id = posts.insert(tweets)
-        print '# post id'
-        print post_id
+        for tweet in tweets:
+            if(tweet['lang']=='en'):
+                print tweet['text']
+                post_id = posts.insert(tweet)
+                print '# post id'
+                print post_id
         print 'Fetched %i tweets' % len(tweets)
         
         page_num = 1
@@ -89,13 +89,18 @@ class Twitter(Network):
         
             api_call = getattr(t.statuses, TIMELINE_NAME + '_timeline')
             tweets = makeTwitterRequest(api_call, **KW)
-            #db.update(tweets, all_or_nothing=True)
-            print json.dumps(tweets,indent = 3)
-            posts.insert(tweets)
+            #print json.dumps(tweets,indent = 3)
+            for tweet in tweets:
+                if(tweet['lang']=='en'):
+                    print tweet['text']
+                    post_id = posts.insert(tweet)
+                    print '# post id'
+                    print post_id
+                
             print 'Fetched %i tweets' % len(tweets)
             page_num += 1
             
 
-# tw = Twitter()
-# tw.get_top()
-# tw.get_stream('home', 16)
+#tw = Twitter()
+#tw.get_top()
+#tw.get_stream('home', 16)
