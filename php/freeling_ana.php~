@@ -1,0 +1,44 @@
+<?php 
+
+ include("analyzer.php");
+
+ // Adjust this path to your local FreeLing installation
+ $FL_DIR = "/usr";
+
+ // Creating Mongodb client
+ $m = new MongoClient();
+ $db = $m->test_database; //Currente database
+ $entities = $db->tw_data; //Social network data
+ 
+ // Freebase 
+ /*$service_url = 'https://www.googleapis.com/freebase/v1/search';
+ $params = array(
+    'query' => 'Blue Bottle',
+    'key' => 'AIzaSyDd7UQL1RzURIZfVouNq5IFtI2BLr_nRJk'
+  );
+  $url = $service_url . '?' . http_build_query($params);
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, $url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+  $response = json_decode(curl_exec($ch), true);
+  curl_close($ch);
+  foreach($response['result'] as $result) {
+    //echo $result['name'] . '<br/>';
+  	echo print_r($result). '<br/>';
+  }*/
+
+
+ // launch Analizer
+ $a = new analyzer("8080","-f $FL_DIR/share/freeling/config/en.cfg","$FL_DIR/bin","$FL_DIR/share/freeling");
+ //Analysing each tweet
+ foreach($entities->find() as $document){
+ 	echo 'Tweet: '. $document['text'] .'<br />';
+  $output = str_replace("\n"," ", $a->analyze_text($document['text']) );
+	$explode = explode(' ', $output);
+  echo 'Output: <br />';
+  echo $output;
+	echo 'explode: <br />';
+	echo print_r($explode) . '<br />';
+ }
+
+?>

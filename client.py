@@ -1,6 +1,9 @@
 import network
-import analysis
+#import analysis #No longer in use
 import report
+#import subprocess
+import urllib
+
 from pymongo import MongoClient
 
 print ''
@@ -13,7 +16,8 @@ print '#         Data Mining with twitter         #'
 print '############################################'
 
 tw = network.Twitter()
-tw.get_stream('home', 16)
+#tw.get_stream('home', 16)
+#tw.get_search('#pokemon')
 
 
 
@@ -21,13 +25,10 @@ print '############################################'
 print '#         Semantic Analysis                #'
 print '############################################'
 
-alchemy = analysis.Alchemy()
+#url = 'http://localhost/freeling/freeling_ana.php'
+#response = urllib.urlopen(url).read() 
+#print response
 
-client = MongoClient('localhost',27017)
-db = client.test_database
-posts = db.tw_data #Collection name
-for tweet in posts.find():
-    alchemy.get_entities(txt=tweet['text'])
 
 print '############################################'
 print '#        Report and Extra Analysis         #'

@@ -1,7 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 from pymongo import MongoClient
-
+import numpy as np
 #Imports para tagcloud
 import os
 import sys
@@ -11,17 +11,81 @@ from cgi import escape
 from math import log
 
 class Report():
-        
-    def graph_entities(self):
+         #Grafica la entidad y la informacion que le mandan
+    def graph_entities(self,query):
         G = nx.Graph()
         client = MongoClient('localhost',27017)
         db = client.test_database
-        posts = db.analisys_data
-        for entity in posts.find():
-            print entity
-            #G.add_node(entity['text'])
-            G.add_edge(entity['type'],entity['text'])
-        nx.draw_circular(G)
+        entities = db.entities
+        entitie_info = db.entitie_info
+        for e in entities.find({'entitie':query}): #Buscar todas las entidades identificadas en el analizador
+            print 'Entidad: '
+            print e
+            for entity in entitie_info.find({'entitie':e['entitie']}): #Buscar toda la informacion relacionada con esta entidad
+                print 'Info Entidad'
+                print entity['name']
+                #G.add_node(entity['text'])
+                G.add_edge(entity['name'],entity['entitie'])
+        nx.draw(G)
+        plt.show()
+    #Graficas las entidades encontradas con su repeticion
+    def graph_rept(self):
+        client = MongoClient('localhost',27017)
+        db = client.test_database
+        entities = db.entities
+        N = 0
+        entities_list = []
+        entities_count = []
+        sum = 0
+        for e in entities.find():
+            N = N + 1
+            sum = sum + e['count']
+         
+        avarage = sum / N
+        n_ent = 0
+        max = 0
+        for e in entities.find().sort('count',-1).limit(10):
+            n_ent = n_ent + 1
+            if e['count'] > max : max = e['count'] 
+            entities_list.append(e['entitie'])
+            entities_count.append(e['count'])
+        width = 0.15       # the width of the bars: can also be len(x) sequence
+        ind = np.arange(n_ent)
+        plt.bar(ind,entities_count, width, color='r')
+        plt.title('Top 10 Entities')
+        plt.xticks(ind+width/2,entities_list)
+        plt.yticks(np.arange(0,max +1,1))
+        plt.show()
+    
+    def graph_test(self):
+        print 'Graph Test'
+        G1 = nx.Graph()
+        G1.add_edge('Gameplay of Pokemon','Pokemon')
+        G1.add_edge('Pokemon Red and Blue','Pokemon')
+        G1.add_edge('Pokemon Diamond and Perl','Pokemon')
+        
+        G2 = nx.Graph()
+        G2.add_edge('Nintendo Entreteinment System','Nintendo')
+        G2.add_edge('Video Games','Nintendo')
+        G2.add_edge('Super Nintendo Entertainment System','Nintendo')
+        G2.add_edge('Wii','Nintendo')
+        
+        G3 = nx.Graph()
+        G3.add_edge('Video Games','Game freak')
+        G3.add_edge('Game Developer','Game freak')
+        G3.add_edge('Pokemon','Game freak')
+        #G3.add_edge('Organization','Game freak')
+        #G3.add_edge('Business','Game freak')
+        G4 = nx.Graph()
+        G4.graph['network'] = 'Twitter'
+        G4.add_node('Pokemon')
+        G4.add_edge('Pokemon','Video Games')
+        G4.add_edge('Video Games','Pokemon')
+        G4.add_edge('Pokemon','Pikachu')
+        G4.add_node('Nintendo')
+        G4.add_edge('Video Games','Nintendo')
+        
+        nx.draw(G4)
         plt.show()
     
     def entity_cloud(self):
@@ -129,6 +193,6 @@ class Report():
             
             webbrowser.open("file://" + os.path.join(os.getcwd(), 'out', os.path.basename(HTML_TEMPLATE)))
             
-#r = Report()
-#r.graph_entities()
-#r.entity_cloud()
+r = Report()
+#r.graph_rept()
+r.graph_entities('pokemon')
